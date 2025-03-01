@@ -74,10 +74,28 @@ If an instance ID appears, the DICOM file was successfully stored.
 
 ---
 
-## Conclusion
-This setup supports **automatic routing and load balancing** for DICOM endpoints. You can:
-- Use **Docker** for running Orthanc instances.
-- Use **storescu** to send DICOM files.
-- Use **curl** to verify stored instances.
+## Future Scope
 
-Next steps can include **HAProxy** or **Lua scripting** for advanced dynamic routing.
+1️⃣ Advanced Load Balancing with HAProxy
+Currently, routing decisions are made based on queue size. Future work could implement HAProxy to dynamically balance DICOM storage and retrieval requests.
+
+2️⃣ Metadata-Based Routing
+Rather than routing purely based on server load, metadata such as modality type (CT, MRI, X-ray) and priority tags can be used to send scans to specialized servers.
+
+3️⃣ Scalability with Kubernetes
+Deploying Orthanc servers as Kubernetes pods would allow automatic scaling based on workload, ensuring optimal performance.
+
+4️⃣ Federated Learning Integration
+By dynamically distributing medical images across different locations, this system could support AI-driven federated learning, enabling collaborative training of deep learning models on medical scans without violating data privacy regulations.
+
+5️⃣ Automated Fault Tolerance
+Future iterations could implement automatic failover mechanisms, ensuring that if one Orthanc server crashes, images are redirected seamlessly to another available node.
+
+---
+
+## Conclusion
+
+This setup supports automatic routing and load balancing for DICOM endpoints. You can:
+Use Docker for running Orthanc instances.
+Use storescu to send DICOM files.
+Use curl to verify stored instances.

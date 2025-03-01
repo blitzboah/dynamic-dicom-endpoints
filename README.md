@@ -69,6 +69,10 @@ curl -u orthanc:orthanc http://localhost:8052/instances
 If an instance ID appears, the DICOM file was successfully stored.
 
 ---
+## Outputs
+![image](https://github.com/user-attachments/assets/a12694d7-78ae-4b66-b2d8-c7c366479242)
+
+---
 
 ## Conclusion
 This setup supports **automatic routing and load balancing** for DICOM endpoints. You can:
@@ -77,5 +81,3 @@ This setup supports **automatic routing and load balancing** for DICOM endpoints
 - Use **curl** to verify stored instances.
 
 Next steps can include **HAProxy** or **Lua scripting** for advanced dynamic routing.
-
- dynamic-dicom-endpoints

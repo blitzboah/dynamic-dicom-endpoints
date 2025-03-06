@@ -1,43 +1,51 @@
-from pynetdicom import AE, evt, debug_logger
+from pynetdicom import AE, evt
 from pydicom import Dataset
 import sys
-
-# Make sure to import the routing function
 from middleware import route_dicom_image
+
+DEBUG_MODE = "--debug" in sys.argv
+
+def log_debug(message):
+    """ Print debug messages only if --debug is enabled. """
+    if DEBUG_MODE:
+        print(message, flush=True)
+
+def log_info(message):
+    """ Always print important logs. """
+    print(message, flush=True)
 
 def handle_store(event):
     """
-    handle incoming DICOM images.
+    Handle incoming DICOM images.
     """
-    print("=== STORE event triggered ===", flush=True)
-    ds = event.dataset  # the DICOM dataset
-    print(f"Received DICOM image with SOP Instance UID: {ds.SOPInstanceUID}", flush=True)
+    log_info("Received a DICOM image.")
     
-    # Explicitly flush stdout to ensure we see output
-    sys.stdout.flush()
-    
+    ds = event.dataset  # The DICOM dataset
+    log_debug(f"SOP Instance UID: {ds.SOPInstanceUID}")
+
     try:
-        # pass the dataset to the routing logic
-        print("Calling route_dicom_image function...", flush=True)
-        route_dicom_image(ds)
-        print("Returned from route_dicom_image function", flush=True)
+        log_info("Finding the best Orthanc instance for storage...")
+        
+        selected_server, instance_count = route_dicom_image(ds, debug=DEBUG_MODE)
+
+        if selected_server:
+            log_info(f"Image stored in {selected_server['ae_title']} (Instances: {instance_count})")
+        else:
+            log_info("No available Orthanc instance found. Image was not stored.")
     except Exception as e:
-        print(f"ERROR in handle_store: {e}", flush=True)
-    
-    # Flush again to ensure we see output
-    sys.stdout.flush()
-    
-    return 0x0000  # success status
+        log_info(f"ERROR in handle_store: {e}")
+
+    return 0x0000  # Success status
 
 def start_dicom_listener(port=11113):
     """
     Start a DICOM listener on the specified port.
     """
+    log_info(f"Starting DICOM listener on port {port}...")
     ae = AE(ae_title='DYNAMIC_DICOM_MW')
     ae.add_supported_context('1.2.840.10008.5.1.4.1.1.2')  # CT image storage
-    print(f"Starting DICOM listener on port {port}...", flush=True)
+    
     ae.start_server(('', port), evt_handlers=[(evt.EVT_C_STORE, handle_store)])
-    print(f"DICOM listener started on port {port}", flush=True)
 
 if __name__ == "__main__":
     start_dicom_listener()

@@ -21,7 +21,7 @@ The system dynamically routes DICOM files to the appropriate storage based on co
 
 1. Clone this repository:
    ```bash
-   git clone https://github.com/yourusername/dynamic-dicom-endpoints.git
+   git clone https://github.com/blitzboah/dynamic-dicom-endpoints.git
    cd dynamic-dicom-endpoints
    ```
 

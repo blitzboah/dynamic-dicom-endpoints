@@ -79,3 +79,8 @@ Check the logs for any errors:
 ```bash
 docker-compose logs -f
 ```
+
+![image](https://github.com/user-attachments/assets/171aac22-05b3-46de-ac4b-3a7639cc9a92)
+![image](https://github.com/user-attachments/assets/79da211e-e811-4d37-802b-d7dada279640)
+
+

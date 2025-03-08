@@ -1,141 +1,81 @@
 # Dynamic DICOM Endpoints
 
-## Overview
-This project dynamically routes DICOM data to multiple Orthanc servers based on queue load and performance. It can be used for teleradiology, federated learning, or distributed PACS (Picture Archiving and Communication System) setups. The system enables dynamic load balancing across multiple Orthanc instances.
+This project provides a dynamic DICOM routing system using multiple Orthanc instances. It consists of two Orthanc instances running as PACS servers and one Orthanc instance acting as a probe.
 
-## Dependencies
-Before running the setup, ensure you have the following installed:
+## Architecture
 
-- **Docker** (for running Orthanc instances)
-- **DCMTK** (for sending DICOM images using `storescu`)
-- **curl** (for checking stored instances)
-- **Python 3** (for additional scripts)
-- **pydicom** and **requests** (for handling DICOM modifications)
+- **Orthanc Storage 1**: First PACS server instance
+- **Orthanc Storage 2**: Second PACS server instance
+- **Orthanc Probe**: Instance used for routing and monitoring
 
-### Install Dependencies
-```bash
-sudo apt update && sudo apt install docker.io dcmtk curl -y
-pip install pydicom requests
-```
+The system dynamically routes DICOM files to the appropriate storage based on configured rules.
 
-## Running the Middleware (main.py)
-The middleware listens for incoming DICOM images and routes them to the least-loaded Orthanc instance.
+## Prerequisites
 
-### Start Middleware (Normal Mode)
-```bash
-python main.py
-```
+- Docker and Docker Compose
+- DICOM toolkit (dcmtk) for sending files with StoreSCU command
 
-This will:
-- Start the DICOM listener on port 11113.
-- Log essential messages like image received and selected Orthanc instance.
-- It will not show debug details.
+## Getting Started
 
-### Start Middleware (Debug Mode)
-```bash
-python main.py --debug
-```
+### Setup and Installation
 
-This will:
-- Show detailed logs about DICOM routing.
-- Include instance counts from each Orthanc server.
-- Display all network requests made to Orthanc.
+1. Clone this repository:
+   ```bash
+   git clone https://github.com/yourusername/dynamic-dicom-endpoints.git
+   cd dynamic-dicom-endpoints
+   ```
 
-## Running with Docker
+2. Start the services using Docker Compose:
+   ```bash
+   docker-compose up -d
+   ```
 
-### Start Multiple Orthanc Instances
-Run the following Docker commands to start two Orthanc instances:
+This will start:
+- Two Orthanc PACS servers running on ports 8042 and 8043
+- One Orthanc probe instance running on port 8044
+- The custom middleware service 
+
+### Sending DICOM Files
+
+To send DICOM files to the system, use the StoreSCU command from the DICOM toolkit:
 
 ```bash
-sudo docker run -d --rm --name orthanc1 -p 8042:8042 -p 4242:4242 jodogne/orthanc-plugins
-sudo docker run -d --rm --name orthanc2 -p 8052:8042 -p 4252:4242 jodogne/orthanc-plugins
+storescu -v -aet TEST_SCU -aec DYNAMIC_DICOM_MW localhost 11113 dcm_files/test_file1.dcm
 ```
 
-Check if the instances are running:
+You can also send multiple files:
 
 ```bash
-docker ps
+storescu -v -aet TEST_SCU -aec DYNAMIC_DICOM_MW localhost 11113 dcm_files/*.dcm
 ```
 
-## Sending a DICOM File Using storescu
-Once Orthanc is running, send a test DICOM file to the middleware listener.
+- The last parameter is the path to the DICOM file(s) to send
 
-### Install dcmtk (if not installed)
+## Configuration
+
+The system uses three main configuration files:
+- `orthanc_storage_1.json`: Configuration for the first PACS server
+- `orthanc_storage_2.json`: Configuration for the second PACS server
+- `orthanc_probe.json`: Configuration for the routing probe
+
+## Components
+
+- `main.py`: Entry point for the middleware service
+- `middleware.py`: Contains the routing logic
+- `orthanc_manager.py`: Manages communication with Orthanc instances
+- `dicom_listener.py`: Listens for incoming DICOM files
+
+## Docker Compose Services
+
+The Docker Compose configuration creates the following services:
+1. `orthanc-storage-1`: First PACS server
+2. `orthanc-storage-2`: Second PACS server
+3. `orthanc-probe`: The routing probe
+4. `middleware`: The custom routing service
+
+## Troubleshooting
+
+Check the logs for any errors:
 ```bash
-sudo apt install dcmtk -y  # Ubuntu/Debian
-sudo pacman -S dcmtk        # Arch Linux
+docker-compose logs -f
 ```
-
-### Send a DICOM image using storescu
-```bash
-storescu -v -aec ANY-SCP localhost 11113 /path/to/test.dcm
-```
-- `-aec ANY-SCP` → The AE Title for the receiving application.
-- `localhost 11113` → The middleware listener port.
-- `/path/to/test.dcm` → Replace with your actual DICOM file.
-
-## Checking Stored Instances in Orthanc
-To verify if the image was stored in one of the Orthanc servers, use:
-
-### Check Orthanc1
-```bash
-curl -u orthanc:orthanc http://localhost:8042/instances
-```
-
-### Check Orthanc2
-```bash
-curl -u orthanc:orthanc http://localhost:8052/instances
-```
-
-If an instance ID appears, the DICOM file was successfully stored.
-
-## Testing with Multiple DICOM Files
-You can send multiple DICOM files at once:
-
-```bash
-storescu -v -aec ANY-SCP localhost 11113 dcm_files/*.dcm
-```
-
-If some files fail with "SOPClassUID is missing" errors, follow the next section.
-
-## Fixing DICOM Files (Missing SOPClassUID)
-If some DICOM files fail to send due to missing SOPClassUID, use fix_sop_uid.py:
-
-### Run the script
-```bash
-python fix_sop_uid.py
-```
-
-### What it does
-- Fixes missing SOPClassUID
-- Assigns a new SOPInstanceUID to avoid duplicates
-- Saves the corrected DICOM files
-
-### Resend the fixed DICOM files
-```bash
-storescu -v -aec ANY-SCP localhost 11113 dcm_files/*.dcm
-```
-
-## Deleting All DICOM Files
-If you need to delete all stored DICOM images from Orthanc instances:
-
-### Use the delete script
-```bash
-python delete_all_dicom.py
-```
-
-### Alternatively, delete manually using cURL
-```bash
-curl -u orthanc:orthanc -X DELETE http://localhost:8042/instances
-curl -u orthanc:orthanc -X DELETE http://localhost:8052/instances
-```
-
-This will remove all stored DICOM images.
-
-## Conclusion
-This setup supports automatic routing and load balancing for DICOM endpoints. You can:
-
-- Use Docker for running Orthanc instances.
-- Use storescu to send DICOM files.
-- Use curl to verify stored instances.
-- Use Python scripts to fix or delete DICOM images.

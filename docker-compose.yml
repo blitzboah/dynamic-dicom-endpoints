@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  orthanc-storage-1:
+    image: jodogne/orthanc
+    container_name: orthanc-storage-1
+    ports:
+      - "8042:8042"
+      - "4242:4242"
+    volumes:
+      - ./orthanc_storage_1.json:/etc/orthanc/orthanc.json
+    networks:
+      - orthanc-network
+
+  orthanc-storage-2:
+    image: jodogne/orthanc
+    container_name: orthanc-storage-2
+    ports:
+      - "8043:8042"
+      - "4243:4242"
+    volumes:
+      - ./orthanc_storage_2.json:/etc/orthanc/orthanc.json
+    networks:
+      - orthanc-network
+
+  orthanc-probe:
+    image: jodogne/orthanc
+    container_name: orthanc-probe
+    ports:
+      - "8052:8042"
+      - "4252:4242"
+    volumes:
+      - ./orthanc_probe.json:/etc/orthanc/orthanc.json
+    networks:
+      - orthanc-network
+
+  dicom-middleware:
+    build: .
+    container_name: dicom-middleware
+    ports:
+      - "11113:11113"
+    networks:
+      - orthanc-network
+    depends_on:
+      - orthanc-storage-1
+      - orthanc-storage-2
+      - orthanc-probe
+
+networks:
+  orthanc-network:

@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DICOM Middleware Interface</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Dynamic DICOM Endpoints</h1>
+            <nav>
+                <a href="{{ url_for('index') }}" class="active">Upload</a>
+                <a href="{{ url_for('server_status') }}">Server Status</a>
+            </nav>
+        </header>
+
+        <main>
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="flash-messages">
+                        {% for category, message in messages %}
+                            <div class="flash {{ category }}">{{ message }}</div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+
+            <div class="card">
+                <h2>Send DICOM Files</h2>
+                <div class="description">
+                    <p>Upload DICOM (.dcm) files to be routed to the least loaded Orthanc server.</p>
+                    <p>Files are processed by the Dynamic DICOM Middleware system.</p>
+                </div>
+
+                <form action="{{ url_for('upload_file') }}" method="post" enctype="multipart/form-data">
+                    <div class="form-group">
+                        <label for="dicomFile">DICOM File:</label>
+                        <div class="file-upload">
+                            <input type="file" id="dicomFile" name="dicomFile" accept=".dcm" required>
+                            <div class="file-upload-name" id="fileName">No file chosen</div>
+                        </div>
+                    </div>
+
+                    <div class="advanced-options-toggle">
+                        <button type="button" id="showAdvancedBtn">Show Advanced Options</button>
+                    </div>
+                    
+                    <div class="advanced-options" id="advancedOptions">
+                        <div class="form-group">
+                            <label for="sourceAE">Source AE Title:</label>
+                            <input type="text" id="sourceAE" name="sourceAE" value="TEST_SCU">
+                        </div>
+                        <div class="form-group">
+                            <label for="targetAE">Target AE Title:</label>
+                            <input type="text" id="targetAE" name="targetAE" value="DYNAMIC_DICOM_MW">
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group half">
+                                <label for="host">Host:</label>
+                                <input type="text" id="host" name="host" value="localhost">
+                            </div>
+                            <div class="form-group half">
+                                <label for="port">Port:</label>
+                                <input type="number" id="port" name="port" value="11113">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="primary">Send DICOM File</button>
+                    </div>
+                </form>
+            </div>
+        </main>
+
+        <footer>
+            <p>Dynamic DICOM Endpoints © 2025</p>
+        </footer>
+    </div>
+
+    <script>
+        // Display file name when selected
+        document.getElementById('dicomFile').addEventListener('change', function() {
+            const fileName = this.files[0] ? this.files[0].name : 'No file chosen';
+            document.getElementById('fileName').textContent = fileName;
+        });
+
+        // Toggle advanced options
+        document.getElementById('showAdvancedBtn').addEventListener('click', function() {
+            const advancedOptions = document.getElementById('advancedOptions');
+            if (advancedOptions.style.display === 'block') {
+                advancedOptions.style.display = 'none';
+                this.textContent = 'Show Advanced Options';
+            } else {
+                advancedOptions.style.display = 'block';
+                this.textContent = 'Hide Advanced Options';
+            }
+        });
+    </script>
+</body>
+</html>

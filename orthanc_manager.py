@@ -66,7 +66,10 @@ class OrthancManager:
             if debug:
                 print(f"HTTP Status: {response.status_code}, Response: {response.text}")
 
-            return response.status_code == 200
+            if response.status_code == 200:
+                return True, server["ae_title"]
+            else:
+                return False, None
 
         except requests.RequestException as e:
             if debug:

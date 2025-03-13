@@ -19,7 +19,6 @@ def route_dicom_image(ds, debug=False):
 
     orthanc_probe = {"ae_title": "ORTHANC-PROBE", "rest_url": "http://orthanc-probe:8052"}
 
-
     # Initialize Orthanc Manager with two PACS servers and one probe
     orthanc_manager = OrthancManager(orthanc_servers, orthanc_probe)
 
@@ -31,7 +30,7 @@ def route_dicom_image(ds, debug=False):
     available_servers = []
     for server in orthanc_servers:
         count = instance_counts.get(server["ae_title"], float("inf"))
-        if count != float("inf"):
+        if count >= 0:
             available_servers.append((server, count))
 
     if not available_servers:
@@ -46,7 +45,7 @@ def route_dicom_image(ds, debug=False):
     ds.save_as(temp_file)
 
     log_debug(f"Sending DICOM image to {selected_server['ae_title']} at {selected_server['rest_url']}/instances")
-    success = orthanc_manager.send_dicom_image(selected_server, temp_file)
+    success, ae_title = orthanc_manager.send_dicom_image(selected_server, temp_file)
 
     os.remove(temp_file)
     log_debug(f"Removed temporary file: {temp_file}")
@@ -55,6 +54,8 @@ def route_dicom_image(ds, debug=False):
         log_debug(f"Successfully sent DICOM image to {selected_server['ae_title']}")
     else:
         log_debug(f"Failed to send DICOM image to {selected_server['ae_title']}")
-
     
-    return selected_server, instance_count
+    if success:
+        return ae_title, instance_count
+    else:
+        return None, None

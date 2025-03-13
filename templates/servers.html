@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Server Status - DICOM Middleware</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>Dynamic DICOM Endpoints</h1>
+            <nav>
+                <a href="{{ url_for('index') }}">Upload</a>
+                <a href="{{ url_for('server_status') }}" class="active">Server Status</a>
+            </nav>
+        </header>
+
+        <main>
+            <div class="card">
+                <h2>Orthanc Server Status</h2>
+                <p>Current status of all Orthanc servers in the system.</p>
+                <div class="debug-info" id="debugInfo"></div>
+
+                <div class="server-grid">
+                    {% for server in servers %}
+                    <div class="server-card" data-url="{{ server.url }}" data-dicom-port="{{ server.dicom_port }}">
+                        <div class="server-name">{{ server.name }}</div>
+                        <div class="server-host-info">{{ server.dicom_host }}:{{ server.dicom_port }}</div>
+                        <div class="server-status loading">
+                            <div class="status-indicator"></div>
+                            <span>Checking...</span>
+                        </div>
+                        <div class="server-details hidden">
+                            <div class="detail-row">
+                                <span class="detail-label">Version:</span>
+                                <span class="detail-value version"></span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Host:</span>
+                                <span class="detail-value host-address"></span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">DICOM Port:</span>
+                                <span class="detail-value dicom-port"></span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Uptime:</span>
+                                <span class="detail-value uptime"></span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Patients:</span>
+                                <span class="detail-value patients"></span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Studies:</span>
+                                <span class="detail-value studies"></span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Instances:</span>
+                                <span class="detail-value instances"></span>
+                            </div>
+                            <div class="detail-row error-details hidden">
+                                <span class="detail-label">Error:</span>
+                                <span class="detail-value error-message"></span>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <div class="refresh-action">
+                    <button id="refreshServers" class="secondary">Refresh Server Status</button>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <p>Dynamic DICOM Endpoints © 2025</p>
+        </footer>
+    </div>
+
+    <script>
+        // Debug function to check what's happening
+        function addDebugMessage(message) {
+            const debugElement = document.getElementById('debugInfo');
+            const timestamp = new Date().toLocaleTimeString();
+            debugElement.innerHTML += `<div>[${timestamp}] ${message}</div>`;
+            console.log(`[${timestamp}] ${message}`);
+        }
+
+        function checkServer(serverCard) {
+            const url = serverCard.dataset.url;
+            const serverName = serverCard.querySelector('.server-name').textContent;
+            const statusElement = serverCard.querySelector('.server-status');
+            const detailsElement = serverCard.querySelector('.server-details');
+            const errorDetails = serverCard.querySelector('.error-details');
+
+            // Reset status to loading
+            statusElement.className = 'server-status loading';
+            statusElement.innerHTML = '<div class="status-indicator"></div><span>Checking...</span>';
+
+            fetch('/api/check_server', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    url: url,
+                    dicom_port: serverCard.dataset.dicomPort
+                }),
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'online') {
+                        statusElement.className = 'server-status online';
+                        statusElement.innerHTML = '<div class="status-indicator"></div><span>Online</span>';
+
+                        // Update server details
+                        serverCard.querySelector('.version').textContent = data.version || 'N/A';
+                        serverCard.querySelector('.host-address').textContent = data.host_address || 'N/A';
+                        serverCard.querySelector('.dicom-port').textContent = data.dicom_port || 'N/A';
+                        serverCard.querySelector('.patients').textContent = data.patients || 0;
+                        serverCard.querySelector('.studies').textContent = data.studies || 0;
+                        serverCard.querySelector('.instances').textContent = data.instances || 0;
+
+                        // Convert uptime
+                        const uptimeSeconds = data.uptime || 0;
+                        const days = Math.floor(uptimeSeconds / 86400);
+                        const hours = Math.floor((uptimeSeconds % 86400) / 3600);
+                        const minutes = Math.floor((uptimeSeconds % 3600) / 60);
+                        serverCard.querySelector('.uptime').textContent = `${days}d ${hours}h ${minutes}m`;
+
+                        errorDetails.classList.add('hidden');
+                        detailsElement.classList.remove('hidden');
+                    } else {
+                        statusElement.className = 'server-status offline';
+                        statusElement.innerHTML = '<div class="status-indicator"></div><span>Offline</span>';
+                        serverCard.querySelector('.error-message').textContent = data.message || 'Unknown error';
+                        errorDetails.classList.remove('hidden');
+                        detailsElement.classList.remove('hidden');
+                    }
+                })
+                .catch(error => {
+                    statusElement.className = 'server-status error';
+                    statusElement.innerHTML = '<div class="status-indicator"></div><span>Connection Error</span>';
+                    serverCard.querySelector('.error-message').textContent = 'Connection error: ' + error;
+                    errorDetails.classList.remove('hidden');
+                    detailsElement.classList.remove('hidden');
+                });
+        }
+
+        // Check all servers immediately when page loads
+        document.addEventListener('DOMContentLoaded', function () {
+            const serverCards = document.querySelectorAll('.server-card');
+            serverCards.forEach(checkServer);
+        });
+
+        // Add event listener for refresh button
+        document.getElementById('refreshServers').addEventListener('click', function () {
+            document.querySelectorAll('.server-card').forEach(checkServer);
+        });
+
+        // Automatically check server status every 15 seconds
+        setInterval(() => {
+            document.querySelectorAll('.server-card').forEach(checkServer);
+        }, 15000);
+    </script>
+</body>
+
+</html>

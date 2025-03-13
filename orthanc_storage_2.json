@@ -7,15 +7,10 @@
   "HttpPort": 8043,
   "AuthenticationEnabled": false,
   "DicomModalities": {
-    "ORTHANC1": {
-      "AET": "ORTHANC1",
-      "Host": "orthanc-storage-1",
-      "Port": 4242
-    },
     "ORTHANC-PROBE": {
       "AET": "ORTHANC-PROBE",
       "Host": "orthanc-probe",
-      "Port": 4242
+      "Port": 4252
     }
   }
 }

@@ -66,38 +66,21 @@ def auto_sync_orthanc_instances(orthanc_manager, debug=False):
                 log_info(f"Skipping sync: Probe {probe_server} is missing from instance counts.")
                 continue
 
-            # Sync PACS servers with each other
-            if instance_counts["ORTHANC1"] > instance_counts["ORTHANC2"]:
-                log_info(f"Syncing ORTHANC1 → ORTHANC2 ({instance_counts['ORTHANC1']} → {instance_counts['ORTHANC2']})")
+            # Ensure only sync to probe — no storage-to-storage sync
+            for pacs in pacs_servers:
+                log_info(f"Syncing {pacs} → {probe_server} ({instance_counts.get(pacs, 0)} → {instance_counts.get(probe_server, 0)})")
                 instance_list = requests.get(
-                    "http://orthanc-storage-1:8042/instances",
+                    f"http://orthanc-storage-1:8042/instances" if pacs == "ORTHANC1" else f"http://orthanc-storage-2:8043/instances",
                     auth=("orthanc", "orthanc")
                 ).json()
                 for instance_uid in instance_list:
                     orthanc_manager.retrieve_from_other_orthanc(
-                        {"ae_title": "ORTHANC1", "rest_url": "http://orthanc-storage-1:8042"},
-                        {"ae_title": "ORTHANC2", "rest_url": "http://orthanc-storage-2:8043"},
+                        {"ae_title": pacs, "rest_url": f"http://orthanc-storage-1:8042" if pacs == "ORTHANC1" else f"http://orthanc-storage-2:8043"},
+                        {"ae_title": probe_server, "rest_url": "http://orthanc-probe:8052"},
                         instance_uid,
                         debug=True
                     )
-                log_info("PACS Sync complete.")
-
-            # Sync all PACS servers to the probe
-            for pacs in pacs_servers:
-                if instance_counts[pacs] > instance_counts[probe_server]:
-                    log_info(f"Syncing {pacs} → {probe_server} ({instance_counts[pacs]} → {instance_counts[probe_server]})")
-                    instance_list = requests.get(
-                        f"http://orthanc-storage-1:8042/instances" if pacs == "ORTHANC1" else f"http://orthanc-storage-2:8043/instances",
-                        auth=("orthanc", "orthanc")
-                    ).json()
-                    for instance_uid in instance_list:
-                        orthanc_manager.retrieve_from_other_orthanc(
-                            {"ae_title": pacs, "rest_url": f"http://orthanc-storage-1:8042" if pacs == "ORTHANC1" else f"http://orthanc-storage-2:8043"},
-                            {"ae_title": probe_server, "rest_url": "http://orthanc-probe:8052"},
-                            instance_uid,
-                            debug=True
-                        )
-                    log_info(f"{pacs} → {probe_server} Sync complete.")
+                log_info(f"{pacs} → {probe_server} Sync complete.")
 
             log_info("No additional sync needed.")
 

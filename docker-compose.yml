@@ -11,6 +11,7 @@ services:
       - ./orthanc_storage_1.json:/etc/orthanc/orthanc.json
     networks:
       - orthanc-network
+    restart: unless-stopped
 
   orthanc-storage-2:
     image: jodogne/orthanc
@@ -22,6 +23,7 @@ services:
       - ./orthanc_storage_2.json:/etc/orthanc/orthanc.json
     networks:
       - orthanc-network
+    restart: unless-stopped
 
   orthanc-probe:
     image: jodogne/orthanc
@@ -33,18 +35,28 @@ services:
       - ./orthanc_probe.json:/etc/orthanc/orthanc.json
     networks:
       - orthanc-network
+    restart: unless-stopped
 
-  dicom-middleware:
+  dicom-middleware-cli:
     build: .
-    container_name: dicom-middleware
-    ports:
-      - "11113:11113"
+    container_name: dicom-middleware-cli
     networks:
       - orthanc-network
-    depends_on:
-      - orthanc-storage-1
-      - orthanc-storage-2
-      - orthanc-probe
+    ports:
+      - "11113:11113"
+    entrypoint: ["python", "main.py"]
+
+  dicom-middleware-api:
+    build: .
+    container_name: dicom-middleware-api
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./temp_dicom_files:/app/temp_dicom_files
+    networks:
+      - orthanc-network
+    entrypoint: ["python", "app.py"]
 
 networks:
   orthanc-network:
+    driver: bridge

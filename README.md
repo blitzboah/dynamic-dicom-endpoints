@@ -32,12 +32,18 @@ The system dynamically routes DICOM files to the appropriate storage based on co
 
 This will start:
 - Two Orthanc PACS servers running on ports 8042 and 8043
-- One Orthanc probe instance running on port 8044
+- One Orthanc probe instance
 - The custom middleware service 
 
 ### Sending DICOM Files
 
-To send DICOM files to the system, use the StoreSCU command from the DICOM toolkit:
+To send DICOM files you can use web interface or CLI.
+
+![image](https://github.com/user-attachments/assets/d93e5568-918c-4bad-b2d2-47f4781f582c)
+![image](https://github.com/user-attachments/assets/b42c0373-9ba8-4c89-b427-f53e950cd013)
+
+
+To send DICOM files to the system through CLI, use the StoreSCU command from the DICOM toolkit:
 
 ```bash
 storescu -v -aet TEST_SCU -aec DYNAMIC_DICOM_MW localhost 11113 dcm_files/test_file1.dcm
